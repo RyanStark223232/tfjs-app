@@ -476,6 +476,7 @@ class App extends React.Component {
             const landmarks = prediction.landmarks
 
             let pawn_dist = this.norm(landmarks[0], landmarks[2]);
+            console.log(0, 2);
             let current_moment = (Date.now() - this.state.startAt)/1000
 
             if (this.state.finger_done === false){
