@@ -1,0 +1,7 @@
+{
+  "name": "hifi",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react"
+}
