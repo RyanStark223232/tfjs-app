@@ -22,6 +22,7 @@
     "aws-sdk": "^2.783.0",
     "capture-video-frame": "^1.0.0",
     "chart.js": "^2.9.4",
+    "gh-pages": "^3.1.0",
     "mathjs": "^7.5.1",
     "react": "^17.0.1",
     "react-bootstrap": "^1.4.0",
