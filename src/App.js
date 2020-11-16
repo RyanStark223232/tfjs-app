@@ -475,7 +475,7 @@ class App extends React.Component {
             this.setState({dead_frame: 0});
             const landmarks = prediction.landmarks
 
-            let pawn_dist = this.norm(landmarks[0], landmarks[17]);
+            let pawn_dist = this.norm(landmarks[0], landmarks[2]);
             let current_moment = (Date.now() - this.state.startAt)/1000
 
             if (this.state.finger_done === false){
@@ -628,7 +628,7 @@ class App extends React.Component {
       if (hand.length > 0){
         hand.forEach((prediction) => {
           const landmarks = prediction.landmarks
-          let pawn_dist = this.norm(landmarks[0], landmarks[17]);
+          let pawn_dist = this.norm(landmarks[0], landmarks[2]);
           let index_dist = this.norm(landmarks[4], landmarks[8]);
           index_dist = index_dist/pawn_dist
           let threshold = 0.51;
@@ -659,7 +659,7 @@ class App extends React.Component {
       if (hand.length > 0){
         hand.forEach((prediction) => {
           const landmarks = prediction.landmarks
-          let pawn_dist = this.norm(landmarks[0], landmarks[17]);
+          let pawn_dist = this.norm(landmarks[0], landmarks[2]);
           let rotate_dist = (landmarks[2][0] - landmarks[17][0]) / pawn_dist;
           this.setState({pawn_rotate_array:[...this.state.pawn_rotate_array, pawn_dist]});
           this.setState({rotate_array:[...this.state.rotate_array, rotate_dist]});
@@ -686,7 +686,7 @@ class App extends React.Component {
       if (hand.length > 0){
         hand.forEach((prediction) => {
           const landmarks = prediction.landmarks
-          let pawn_dist = this.norm(landmarks[0], landmarks[17]);
+          let pawn_dist = this.norm(landmarks[0], landmarks[2]);
           let fist_dist =  ((landmarks[8][1] - landmarks[5][1])+
             (landmarks[12][1] - landmarks[9][1])+
             (landmarks[16][1] - landmarks[13][1])+
