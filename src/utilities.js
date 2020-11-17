@@ -13,7 +13,7 @@ const fingerJoints = {
   const color = "aqua";
   const lineWidth = 2;
   
-  const style = {
+  const style_tap = {
     0: { color: "gold", size: 15 },
     1: { color: "gold", size: 6 },
     2: { color: "gold", size: 10 },
@@ -36,22 +36,8 @@ const fingerJoints = {
     19: { color: "gold", size: 6 },
     20: { color: "gold", size: 6 },
   };
-  
-  // Drawing function
-  export const writeText = (ctx, info, style = {}) => {
-    const { text, x, y } = info;
-    const { fontSize = 50, fontFamily = 'Arial', color = 'red', textAlign = 'center', textBaseline = 'center' } = style;
-   
-    ctx.beginPath();
-    ctx.font = fontSize + 'px ' + fontFamily;
-    ctx.textAlign = textAlign;
-    ctx.textBaseline = textBaseline;
-    ctx.fillStyle = color;
-    ctx.fillText(text, x, y);
-    ctx.stroke();
-  }
 
-  export const drawHand = (predictions, ctx) => {
+  export const drawHand_tap = (predictions, ctx) => {
     // Check if we have predictions
     if (predictions.length > 0) {
       // Loop through each prediction
@@ -74,15 +60,161 @@ const fingerJoints = {
           const y = landmarks[i][1];
           // Start drawing
           ctx.beginPath();
-          ctx.arc(x, y, style[i]["size"], 0, 3 * Math.PI);
+          ctx.arc(x, y, style_tap[i]["size"], 0, 3 * Math.PI);
   
           // Set line color
-          ctx.fillStyle = style[i]["color"];
+          ctx.fillStyle = style_tap[i]["color"];
           ctx.fill();
         }
       });
     }
   };
+
+  const style_rotate = {
+    0: { color: "gold", size: 15 },
+    1: { color: "gold", size: 6 },
+    2: { color: "gold", size: 10 },
+    3: { color: "gold", size: 6 },
+    4: { color: "gold", size: 6 },
+    5: { color: "gold", size: 10 },
+    6: { color: "gold", size: 6 },
+    7: { color: "gold", size: 6 },
+    8: { color: "gold", size: 6 },
+    9: { color: "gold", size: 10 },
+    10: { color: "gold", size: 6 },
+    11: { color: "gold", size: 6 },
+    12: { color: "gold", size: 6 },
+    13: { color: "gold", size: 10 },
+    14: { color: "gold", size: 6 },
+    15: { color: "gold", size: 6 },
+    16: { color: "gold", size: 6 },
+    17: { color: "gold", size: 10 },
+    18: { color: "gold", size: 6 },
+    19: { color: "gold", size: 6 },
+    20: { color: "gold", size: 6 },
+  };
+
+  export const drawHand_rotate = (predictions, ctx, passed) => {
+    // Check if we have predictions
+    if (predictions.length > 0) {
+      // Loop through each prediction
+      predictions.forEach((prediction) => {
+        // Grab landmarks
+        const landmarks = prediction.landmarks;
+        ctx.beginPath();
+        ctx.moveTo(landmarks[17][0], landmarks[17][1]);
+        ctx.lineTo(landmarks[2][0], landmarks[2][1]);
+
+        if (passed === -1){
+          style_rotate[17]["color"] = "red";
+          style_rotate[2]["color"] = "red";
+        }
+        else if (passed === 1){
+          style_rotate[17]["color"] = "blue";
+          style_rotate[2]["color"] = "blue";
+        }
+        
+        ctx.strokeStyle = "plum";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Loop through landmarks and draw em
+        for (let i = 0; i < landmarks.length; i++) {
+          // Get x point
+          const x = landmarks[i][0];
+          // Get y point
+          const y = landmarks[i][1];
+          // Start drawing
+          ctx.beginPath();
+          ctx.arc(x, y, style_rotate[i]["size"], 0, 3 * Math.PI);
+  
+          // Set line color
+          ctx.fillStyle = style_rotate[i]["color"];
+          ctx.fill();
+        }
+      });
+    }
+  };
+
+  const style_fist = {
+    0: { color: "gold", size: 15 },
+    1: { color: "gold", size: 6 },
+    2: { color: "gold", size: 10 },
+    3: { color: "gold", size: 6 },
+    4: { color: "gold", size: 6 },
+    5: { color: "gold", size: 10 },
+    6: { color: "gold", size: 6 },
+    7: { color: "gold", size: 6 },
+    8: { color: "gold", size: 6 },
+    9: { color: "gold", size: 10 },
+    10: { color: "gold", size: 6 },
+    11: { color: "gold", size: 6 },
+    12: { color: "gold", size: 6 },
+    13: { color: "gold", size: 10 },
+    14: { color: "gold", size: 6 },
+    15: { color: "gold", size: 6 },
+    16: { color: "gold", size: 6 },
+    17: { color: "gold", size: 10 },
+    18: { color: "gold", size: 6 },
+    19: { color: "gold", size: 6 },
+    20: { color: "gold", size: 6 },
+  };
+
+  export const drawHand_fist = (predictions, ctx, passed) => {
+    // Check if we have predictions
+    if (predictions.length > 0) {
+      // Loop through each prediction
+      predictions.forEach((prediction) => {
+        // Grab landmarks
+        const landmarks = prediction.landmarks;
+        if (passed === 0){
+          style_fist[8]["color"] = "red";
+          style_fist[12]["color"] = "red";
+          style_fist[16]["color"] = "red";
+          style_fist[20]["color"] = "red";
+        }
+        else if (passed === 1){
+          style_fist[8]["color"] = "blue";
+          style_fist[12]["color"] = "blue";
+          style_fist[16]["color"] = "blue";
+          style_fist[20]["color"] = "blue";
+        }        
+
+        ctx.strokeStyle = "plum";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Loop through landmarks and draw em
+        for (let i = 0; i < landmarks.length; i++) {
+          // Get x point
+          const x = landmarks[i][0];
+          // Get y point
+          const y = landmarks[i][1];
+          // Start drawing
+          ctx.beginPath();
+          ctx.arc(x, y, style_fist[i]["size"], 0, 3 * Math.PI);
+  
+          // Set line color
+          ctx.fillStyle = style_fist[i]["color"];
+          ctx.fill();
+        }
+      });
+    }
+  };
+  
+  // Drawing function
+  export const writeText = (ctx, info, style = {}) => {
+    const { text, x, y } = info;
+    const { fontSize = 50, fontFamily = 'Arial', color = 'red', textAlign = 'center', textBaseline = 'center' } = style;
+   
+    ctx.beginPath();
+    ctx.font = fontSize + 'px ' + fontFamily;
+    ctx.textAlign = textAlign;
+    ctx.textBaseline = textBaseline;
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+    ctx.stroke();
+  }
 
   function toTuple({ y, x }) {
     return [y, x];

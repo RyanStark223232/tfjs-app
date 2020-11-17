@@ -6,7 +6,7 @@ import * as facemesh from "@tensorflow-models/facemesh";
 //import * as tf from '@tensorflow/tfjs-core';
 import Webcam from "react-webcam";
 import "./App.css";
-import { drawHand, writeText, drawKeypoints, drawSkeleton, drawMesh } from "./utilities";
+import { drawHand_tap, drawHand_rotate, drawHand_fist, writeText, drawKeypoints, drawSkeleton, drawMesh } from "./utilities";
 import { sqrt, pow } from "mathjs"
 import {Line} from 'react-chartjs-2';
 
@@ -19,6 +19,8 @@ class App extends React.Component {
       rotate_count : [],
       fist_count : [],
       index_passed : 0,
+      min_dist: 0,
+      max_dist: 5.0,
       rotate_passed : 0,
       last_pressed:0,
       real_time_inferencing:false,
@@ -28,9 +30,6 @@ class App extends React.Component {
       finger_done : false,
       rotate_done : false,
       fist_done : false,
-      pawn_dist_array : [],
-      pawn_rotate_array : [],
-      pawn_fist_array : [],
       dist_array : [],
       dist_time_array : [],
       dist_record : [],
@@ -52,13 +51,14 @@ class App extends React.Component {
       wait_till : 0,
       startAt: Date.now(),
       dead_frame: 0,
-      ctx: null,
       raw: true,
       facingMode: "user",
+      avg_fps: 0,
     };
     this.webcamRef = React.createRef(null);
     this.canvasRef = React.createRef(null);
     this.videoConstraints = {facingMode: "user"};
+    this.capture_interval = 100;
     this.runHandpose = this.runHandpose.bind(this);
     this.stop_real_time_inference = this.stop_real_time_inference.bind(this);
     this.stop_tapping = this.stop_tapping.bind(this);
@@ -73,11 +73,13 @@ class App extends React.Component {
     this.switch_button = this.switch_button.bind(this);
     this.compose_chart = this.compose_chart.bind(this);
     this.runPosenet = this.runPosenet.bind(this);
-    this.read_time_posenet = this.read_time_posenet.bind(this);
+    this.real_time_posenet = this.real_time_posenet.bind(this);
     this.runFacemesh = this.runFacemesh.bind(this);
-    this.read_time_facemesh = this.read_time_facemesh.bind(this);
+    this.real_time_facemesh = this.real_time_facemesh.bind(this);
     this.switch_style = this.switch_style.bind(this);
     this.switch_cam = this.switch_cam.bind(this);
+    this.getArray = this.getArray.bind(this);
+    this.exportToJson = this.exportToJson.bind(this);
   }
 
   switch_cam(){
@@ -91,16 +93,15 @@ class App extends React.Component {
     console.log("Facemesh model loaded.");
     this.setState({startAt:Date.now()});
     const Interval_ID = setInterval(() => {
-      this.read_time_facemesh(net);
-    }, 50);
-    this.setState({ID:Interval_ID});
-    this.setState({real_time_inferencing:true});
+      this.real_time_facemesh(net);
+    }, this.capture_interval);
+    this.setState({ID:Interval_ID,
+      real_time_inferencing:true});
   }
 
-  async read_time_facemesh(net) {
+  async real_time_facemesh(net) {
     if (this.state.wait){
       this.setState({wait_till:Date.now()+3000});
-      //await this.sleep(3000);
       this.setState({wait:false});
     }
     if (
@@ -127,17 +128,16 @@ class App extends React.Component {
     console.log("PoseNet model loaded.");
     this.setState({startAt:Date.now()});
     const Interval_ID = setInterval(() => {
-      this.read_time_posenet(net);
-    }, 50);
-    this.setState({ID:Interval_ID});
-    this.setState({real_time_inferencing:true});
+      this.real_time_posenet(net);
+    }, this.capture_interval);
+    this.setState({ID:Interval_ID,
+      real_time_inferencing:true});
   }
 
-  async read_time_posenet(net) {
+  async real_time_posenet(net) {
     if (this.state.wait){
-      this.setState({wait_till:Date.now()+3000});
-      //await this.sleep(3000);
-      this.setState({wait:false});
+      this.setState({wait_till:Date.now()+3000,
+        wait:false});
     }
     if (
       typeof this.webcamRef.current !== "undefined" &&
@@ -166,22 +166,33 @@ class App extends React.Component {
   compose_chart(){
     let time_array_1 = [];
     let count_array_1 = [];
+    let label_1 = "";
     let time_array_2 = [];
     let count_array_2 = [];
+    let label_2 = "";
     let time_array_3 = [];
     let count_array_3 = [];
-
+    let label_3 = "";
     let real_dist = document.getElementById("real_measurement").value;
-    // change to real life measurement
-
+    let avg_fps = this.state.dist_time_array.length / 
+                 (this.state.dist_time_array[this.state.dist_time_array.length - 1] - 
+                  this.state.dist_time_array[0]);
+    this.setState({avg_fps:avg_fps});
+    
     if (this.state.raw){
+      // Print Data Raw
       time_array_1 = [...this.state.dist_time_array];
       count_array_1 = [...this.state.dist_array];
       time_array_2 = [...this.state.rotate_time_array];
       count_array_2 = [...this.state.rotate_array];
       time_array_3 = [...this.state.fist_time_array];
       count_array_3 = [...this.state.fist_array];
+      
+      // Change to Real Life Measurement
       if (real_dist > 0.0001){
+        label_1 = "Distance between Index and Thumb (cm)";
+        label_2 = "Relative Location between Left and Right of Hand (cm)";
+        label_3 = "Relative Location between Tip of Fingers and Finger Joints (cm)";
         let i = 0;
         let tmp = 0;
         for (i = 0; i < count_array_1.length; i++){
@@ -197,67 +208,74 @@ class App extends React.Component {
           count_array_3[i] = tmp*real_dist;
         }
       }
+      else{
+        label_1 = "Distance between Index and Thumb (Relative Scale)";
+        label_2 = "Relative Location between Left and Right of Hand (Relative Scale)";
+        label_3 = "Relative Location between Tip of Fingers and Finger Joints (Relative Scale)";
+      }
     }
     else{
       // Recalculate Tapping Data
-      let start = this.state.dist_time_array[0];
-      let end = this.state.dist_time_array[this.state.dist_time_array.length - 1];
-      while (start + 1.0 < end){
-        time_array_1 = [...time_array_1, start];
-        let count = 0, temp_max = 0;
-        for (let i = 0; i < this.state.dist_array.length; i++){        
-          if (this.state.dist_time_array[i] >= start && this.state.dist_time_array[i] < (start + 1.0)){
-            if (temp_max < this.state.dist_array[i]) temp_max = this.state.dist_array[i];
-            if (this.state.tap_count.includes(this.state.dist_time_array[i])){
-              count += temp_max;
-              temp_max = 0;
-            }
-          }
-        }
-        count_array_1 = [...count_array_1, count];
-        start += 0.1;
+      let d_array = [];
+      let avg_value = 0;
+      for (let i = 1; i < this.state.dist_array.length; i++) d_array = [...d_array, Math.abs(this.state.dist_array[i-1] - this.state.dist_array[i])];
+      for (let i = 0; i < d_array.length - 49; i++){
+        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4])/5;
+        count_array_1 = [...count_array_1, avg_value];
+        time_array_1 = [...time_array_1, this.state.dist_time_array[i]];
       }
 
-      // Recalculate Rotate Data
-      start = this.state.rotate_time_array[0];
-      end = this.state.rotate_time_array[this.state.rotate_time_array.length - 1];
-      while (start + 5.0 < end){
-        time_array_2 = [...time_array_2, start + 2.5];
-        let count = 0.0;
-        let time_value = 0;
-        for (let tc in this.state.rotate_count){
-          time_value = this.state.rotate_count[tc];
-          if (time_value >= start && time_value < (start + 5.0)){
-            count += 1.0;
-          }
-        }
-        count_array_2 = [...count_array_2, count];
-        start += 0.1;
+      d_array = [];
+      avg_value = 0;
+      for (let i = 1; i < this.state.rotate_array.length; i++) d_array = [...d_array, Math.abs(this.state.rotate_array[i-1] - this.state.rotate_array[i])];
+      for (let i = 0; i < d_array.length - 49; i++){
+        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4])/5;
+        count_array_2 = [...count_array_2, avg_value];
+        time_array_2 = [...time_array_2, this.state.rotate_time_array[i]];
       }
 
-      // Recalculate Gripping Data
-      start = this.state.fist_time_array[0];
-      end = this.state.fist_time_array[this.state.fist_time_array.length - 1];
-      while (start + 5.0 < end){
-        time_array_3 = [...time_array_3, start + 2.5];
-        let count = 0.0;
-        let time_value = 0;
-        for (let tc in this.state.fist_count){
-          time_value = this.state.fist_count[tc];
-          if (time_value >= start && time_value < (start + 5.0)){
-            count += 1.0;
-          }
+      d_array = [];
+      avg_value = 0;
+      for (let i = 1; i < this.state.fist_array.length; i++) d_array = [...d_array, Math.abs(this.state.fist_array[i-1] - this.state.fist_array[i])];
+      for (let i = 0; i < d_array.length - 49; i++){
+        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4])/5;
+        count_array_3 = [...count_array_3, avg_value];
+        time_array_3 = [...time_array_3, this.state.fist_time_array[i]];
+      }
+
+      // Change to Real Life Measurement
+      if (real_dist > 0.0001){
+        label_1 = "Average Distance between Index and Thumb per Second (cm)";
+        label_2 = "Average Distance between Left and Right of Hand per Second (cm)";
+        label_3 = "Average Distance Location between Tip of Fingers and Finger Joints per Second (cm)";
+        let i = 0;
+        let tmp = 0;
+        for (i = 0; i < count_array_1.length; i++){
+          tmp = count_array_1[i];
+          count_array_1[i] = tmp*real_dist;
         }
-        count_array_3 = [...count_array_3, count];
-        start += 0.1;
+        for (i = 0; i < count_array_2.length; i++){
+          tmp = count_array_2[i];
+          count_array_2[i] = tmp*real_dist;
+        }
+        for (i = 0; i < count_array_3.length; i++){
+          tmp = count_array_3[i];
+          count_array_3[i] = tmp*real_dist;
+        }
+      }
+      else{
+        label_1 = "Average Distance between Index and Thumb per Second (Relative Scale)";
+        label_2 = "Average Distance between Left and Right of Hand per Second (Relative Scale)";
+        label_3 = "Average Distance Location between Tip of Fingers and Finger Joints per Second (Relative Scale)";
       }
     }
-      
+
+    // Setup Graphs
     const data1 = {
       labels: time_array_1,
       datasets: [        
         {
-          label: 'Tapping',
+          label: label_1,
           fill: false,
           lineTension: 0.3,
           backgroundColor: 'rgba(75,192,192,0.4)',
@@ -283,7 +301,7 @@ class App extends React.Component {
       labels: time_array_2,
       datasets: [        
         {
-          label: 'Rotation',
+          label: label_2,
           fill: false,
           lineTension: 0.1,
           backgroundColor: 'rgba(192,75,192,0.4)',
@@ -309,7 +327,7 @@ class App extends React.Component {
       labels: time_array_3,
       datasets: [        
         {
-          label: 'Fist',
+          label: label_3,
           fill: false,
           lineTension: 0.1,
           backgroundColor: 'rgba(192,192,75,0.4)',
@@ -331,7 +349,6 @@ class App extends React.Component {
         }
       ]
     };
-
     this.setState({chart_data1:data1});
     this.setState({chart_data2:data2});
     this.setState({chart_data3:data3});
@@ -374,13 +391,16 @@ class App extends React.Component {
 
   reset_counter(){
     clearInterval(this.state.ID);
-    if (this.state.ctx != null) this.state.ctx.clearRect(0,0, this.canvasRef.current.width, this.canvasRef.current.height);
+    const ctx = this.canvasRef.current.getContext("2d");
+    ctx.clearRect(0,0, this.canvasRef.current.width, this.canvasRef.current.height);
     this.setState({
       ID : 0,
       tap_count : [],
       rotate_count : [],
       fist_count : [],
       index_passed : 0,
+      min_dist: 0,
+      max_dist: 5.0,
       rotate_passed : 0,
       last_pressed:0,
       real_time_inferencing:false,
@@ -411,6 +431,9 @@ class App extends React.Component {
       wait_till : 0,
       startAt: Date.now(),
       dead_frame: 0,
+      raw: true,
+      facingMode: "user",
+      avg_fps: 0,
     });
   }
 
@@ -430,16 +453,16 @@ class App extends React.Component {
     console.log("Handpose model loaded.");
     this.setState({startAt:Date.now()});
     const Interval_ID = setInterval(() => {
-      this.read_time_inference(net);
-    }, 50);
-    this.setState({ID:Interval_ID});
-    this.setState({real_time_inferencing:true});
+      this.real_time_inference(net);
+    }, this.capture_interval);
+    this.setState({ID:Interval_ID,
+      real_time_inferencing:true,
+      wait:true});
   };
 
-  async read_time_inference(net) {
+  async real_time_inference(net) {
     if (this.state.wait){
       this.setState({wait_till:Date.now()+3000});
-      //await this.sleep(3000);
       this.setState({wait:false});
     }
     if (
@@ -456,18 +479,14 @@ class App extends React.Component {
       this.canvasRef.current.height = videoHeight;
       const hand = await net.estimateHands(video);
       const ctx = this.canvasRef.current.getContext("2d");
-      this.setState({ctx:ctx});
-
-      //check if hand exist, if yes, drawhand
-      if (hand.length > 0) drawHand(hand, ctx);
       
       //check if waiting
       if (Date.now() < this.state.wait_till){
-        console.log("Waiting till ", this.state.wait_till);
+        if (hand.length > 0) drawHand_tap (hand, ctx);
         //count down 3, 2, 1
         if (this.state.wait_till - Date.now() < 1000) writeText(ctx, { text: '1', x: 180, y: 70 });
-        else if (this.state.wait_till - Date.now() < 2000) writeText(ctx, { text: '2', x: 180, y: 70 });
-        else if (this.state.wait_till - Date.now() < 3000) writeText(ctx, { text: '3', x: 180, y: 70 });
+        else if (this.state.wait_till - Date.now() < 2000) writeText(ctx, { text: '2', x: 140, y: 70 });
+        else if (this.state.wait_till - Date.now() < 3000) writeText(ctx, { text: '3', x: 100, y: 70 });
       }
       else {
         if (hand.length > 0){
@@ -476,36 +495,50 @@ class App extends React.Component {
             const landmarks = prediction.landmarks
 
             let pawn_dist = this.norm(landmarks[0], landmarks[2]);
-            console.log(0, 2);
             let current_moment = (Date.now() - this.state.startAt)/1000
 
             if (this.state.finger_done === false){
+              drawHand_tap (hand, ctx);
+              // Calculate relative distance
               let index_dist = this.norm(landmarks[4], landmarks[8]);
-              index_dist = index_dist/pawn_dist
-              this.setState({pawn_dist_array:[...this.state.pawn_dist_array, pawn_dist]});
-              this.setState({dist_array:[...this.state.dist_array, index_dist]});
-              this.setState({dist_time_array:[...this.state.dist_time_array, current_moment]});
-              let threshold = 0.51;
-              /*
-              if (this.state.dist_array.length > 20){
-                let j = 1;
-                let avg = 0.0;
-                for (j = 1; j <= 20; j++) avg += this.state.dist_array[this.state.dist_array.length - j];
-                threshold = avg/40.0 + threshold/2.0;
-                console.log(threshold);
-              }*/
-              if (index_dist >= (threshold + 0.01)){this.setState({index_passed:1})}
-              if (index_dist < (threshold - 0.01) && this.state.index_passed === 1){
-                this.setState({index_passed:0});
-                this.setState({tap_count:[...this.state.tap_count, current_moment]});
+              let current_dist = index_dist/pawn_dist;
+
+              // Record distance
+              this.setState({dist_array:[...this.state.dist_array, current_dist],
+                dist_time_array:[...this.state.dist_time_array, current_moment]});
+              
+              // Perform counting
+              if (this.state.index_passed === 0 && (current_dist - this.state.min_dist) > 0.05){
+                this.setState({index_passed:1,
+                  max_dist: current_dist});
+                console.log(1);
+              }
+              if (this.state.index_passed === 1 && current_dist > this.state.max_dist){
+                this.setState({max_dist: current_dist});
+                console.log(2);
+              }
+              if (this.state.index_passed === 1 && (this.state.max_dist - current_dist) > 0.05){
+                this.setState({index_passed:0,
+                  min_dist: current_dist,
+                  tap_count:[...this.state.tap_count, current_moment]});
+                console.log(3);
+              }
+              if (this.state.index_passed === 0 && current_dist < this.state.min_dist){
+                this.setState({min_dist: current_dist});
+                console.log(4);
               }
             }
             
             if (this.state.finger_done === true && this.state.rotate_done === false){
+              drawHand_rotate (hand, ctx, this.state.rotate_passed);
+              // Calculate relative distance
               let rotate_dist = (landmarks[2][0] - landmarks[17][0]) / pawn_dist;
-              this.setState({pawn_rotate_array:[...this.state.pawn_rotate_array, pawn_dist]});
-              this.setState({rotate_array:[...this.state.rotate_array, rotate_dist]});
-              this.setState({rotate_time_array:[...this.state.rotate_time_array, current_moment]});
+
+              // Record distance
+              this.setState({rotate_array:[...this.state.rotate_array, rotate_dist],
+                rotate_time_array:[...this.state.rotate_time_array, current_moment]});
+
+              // Perform counting
               if (this.state.rotate_passed === 0){
                 if (rotate_dist >= 0.25) this.setState({rotate_passed:1});
                 if (rotate_dist <= -0.25) this.setState({rotate_passed:-1});
@@ -514,29 +547,36 @@ class App extends React.Component {
                 this.setState({rotate_passed:-1});
               }
               if (this.state.rotate_passed === -1 && rotate_dist >= 0.5){
-                this.setState({rotate_passed:1});
-                this.setState({rotate_count:[...this.state.rotate_count, current_moment]});
+                this.setState({rotate_passed:1,
+                  rotate_count:[...this.state.rotate_count, current_moment]});
               }
             }
 
             if (this.state.rotate_done === true && this.state.fist_done === false){
+              console.log(this.state.fist_passed);
+              drawHand_fist (hand, ctx, this.state.fist_passed);
+              // Calculate relative distance
               let fist_dist =  ((landmarks[8][1] - landmarks[5][1])+
                                 (landmarks[12][1] - landmarks[9][1])+
                                 (landmarks[16][1] - landmarks[13][1])+
                                 (landmarks[20][1] - landmarks[17][1]))/
                                 (4*pawn_dist)
-              this.setState({pawn_fist_array:[...this.state.pawn_fist_array, pawn_dist]});
-              this.setState({fist_array:[...this.state.fist_array, fist_dist]});
-              this.setState({fist_time_array:[...this.state.fist_time_array, current_moment]});
+
+              // Record distance
+              this.setState({fist_array:[...this.state.fist_array, fist_dist],
+                fist_time_array:[...this.state.fist_time_array, current_moment]});
+
+              // Perform counting
               if (fist_dist >= 0.0){this.setState({fist_passed:1})}
               if (fist_dist < -0.4 && this.state.fist_passed === 1){
-                this.setState({fist_passed:0});
-                this.setState({fist_count:[...this.state.fist_count, current_moment]});
+                this.setState({fist_passed:0,
+                  fist_count:[...this.state.fist_count, current_moment]});
               }
             }                  
           });
         }
         else {
+          // Warning message for hand off screen
           if (this.state.dead_frame > 9) writeText(ctx, { text: 'Hand Off Screen', x: 180, y: 70 });
           this.setState({dead_frame: this.state.dead_frame + 1});
         }
@@ -561,6 +601,8 @@ class App extends React.Component {
                    rotate_done:false,
                    fist_done:false});
     this.compose_chart();
+    const ctx = this.canvasRef.current.getContext("2d");
+    ctx.clearRect(0,0, this.canvasRef.current.width, this.canvasRef.current.height);
   }
 
   async record_video(){
@@ -568,16 +610,16 @@ class App extends React.Component {
     console.log("Handpose model loaded.");
     const Interval_ID = setInterval(() => {
       this.concat_frame();
-    }, 50);
-    this.setState({ID:Interval_ID});
-    this.setState({recording:true});
+    }, this.capture_interval);
+    this.setState({ID:Interval_ID,
+      recording:true,
+      wait:true});
   }
 
   async concat_frame() {
     if (this.state.wait){
-      this.setState({wait_till:Date.now()+3000});
-      //await this.sleep(3000);
-      this.setState({wait:false});
+      this.setState({wait_till:Date.now()+3000,
+        wait:false});
     }
     if (
       typeof this.webcamRef.current !== "undefined" &&
@@ -588,10 +630,10 @@ class App extends React.Component {
         console.log("Waiting till ", this.state.wait_till);
         //count down 3, 2, 1
         const ctx = this.canvasRef.current.getContext("2d");
-        if (this.state.wait_till - Date.now() < 1000) writeText(ctx, { text: '1', x: 180, y: 70 });
-        else if (this.state.wait_till - Date.now() < 2000) writeText(ctx, { text: '2', x: 180, y: 70 });
-        else if (this.state.wait_till - Date.now() < 3000) writeText(ctx, { text: '3', x: 180, y: 70 });
-        
+        if (this.state.wait_till - Date.now() < 250) ctx.clearRect(0,0, this.canvasRef.current.width, this.canvasRef.current.height);
+        else if (this.state.wait_till - Date.now() < 1000) writeText(ctx, { text: '1', x: 180, y: 70 });
+        else if (this.state.wait_till - Date.now() < 2000) writeText(ctx, { text: '2', x: 140, y: 70 });
+        else if (this.state.wait_till - Date.now() < 3000) writeText(ctx, { text: '3', x: 100, y: 70 });
       }
       else {
         let current_moment = (Date.now() - this.state.startAt)/1000;
@@ -600,18 +642,18 @@ class App extends React.Component {
         img.src = image;
         img.onload = function(){
           if (this.state.finger_done === false){
-            this.setState({dist_record:[...this.state.dist_record, img]});
-            this.setState({dist_time_record:[...this.state.dist_time_record, current_moment]});
+            this.setState({dist_record:[...this.state.dist_record, img],
+              dist_time_record:[...this.state.dist_time_record, current_moment]});
           }
 
           else if (this.state.finger_done === true && this.state.rotate_done === false){
-            this.setState({rotate_record:[...this.state.rotate_record, img]});
-            this.setState({rotate_time_record:[...this.state.rotate_time_record, current_moment]});
+            this.setState({rotate_record:[...this.state.rotate_record, img],
+              rotate_time_record:[...this.state.rotate_time_record, current_moment]});
           }
 
           else if (this.state.rotate_done === true && this.state.fist_done === false){
-            this.setState({fist_record:[...this.state.fist_record, img]});
-            this.setState({fist_time_record:[...this.state.fist_time_record, current_moment]});
+            this.setState({fist_record:[...this.state.fist_record, img],
+              fist_time_record:[...this.state.fist_time_record, current_moment]});
           }
         }.bind(this)
       }
@@ -627,27 +669,36 @@ class App extends React.Component {
     for (let i = 0; i<this.state.dist_record.length; i++){
       const hand = await net.estimateHands(this.state.dist_record[i]);
       if (hand.length > 0){
-        hand.forEach((prediction) => {
+        hand.forEach((prediction) => { 
+          // Calculate relative distance
           const landmarks = prediction.landmarks
-          let pawn_dist = this.norm(landmarks[0], landmarks[2]);
           let index_dist = this.norm(landmarks[4], landmarks[8]);
-          index_dist = index_dist/pawn_dist
-          let threshold = 0.51;
-          /*
-          if (this.state.dist_array.length > 20){
-            let j = 1;
-            let avg = 0.0;
-            for (j = 1; j <= 20; j++) avg += this.state.dist_array[this.state.dist_array.length - j];
-            threshold = avg/40.0 + threshold/2.0;
-            console.log(threshold);
-          }*/
-          this.setState({pawn_dist_array:[...this.state.pawn_dist_array, pawn_dist]});
-          this.setState({dist_array:[...this.state.dist_array, index_dist]});
-          this.setState({dist_time_array:[...this.state.dist_time_array, this.state.dist_time_record[i]]});
-          if (index_dist >= (threshold + 0.01)){this.setState({index_passed:1})}
-          if (index_dist < (threshold - 0.01) && this.state.index_passed === 1){
-            this.setState({index_passed:0});
-            this.setState({tap_count:[...this.state.tap_count, this.state.dist_time_record[i]]});
+          let pawn_dist = this.norm(landmarks[0], landmarks[2]);
+          let current_dist = index_dist/pawn_dist;
+
+          // Record distance
+          this.setState({dist_array:[...this.state.dist_array, current_dist],
+            dist_time_array:[...this.state.dist_time_array, this.state.dist_time_record[i]]});
+          
+          // Perform counting
+          if (this.state.index_passed === 0 && (current_dist - this.state.min_dist) > 0.05){
+            this.setState({index_passed:1,
+              max_dist: current_dist});
+            console.log(1);
+          }
+          if (this.state.index_passed === 1 && current_dist > this.state.max_dist){
+            this.setState({max_dist: current_dist});
+            console.log(2);
+          }
+          if (this.state.index_passed === 1 && (this.state.max_dist - current_dist) > 0.05){
+            this.setState({index_passed:0,
+              min_dist: current_dist,
+              tap_count:[...this.state.tap_count, this.state.dist_time_record[i]]});
+            console.log(3);
+          }
+          if (this.state.index_passed === 0 && current_dist < this.state.min_dist){
+            this.setState({min_dist: current_dist});
+            console.log(4);
           }
           console.log("INDEX COUNT:", this.state.tap_count);
         });
@@ -662,9 +713,9 @@ class App extends React.Component {
           const landmarks = prediction.landmarks
           let pawn_dist = this.norm(landmarks[0], landmarks[2]);
           let rotate_dist = (landmarks[2][0] - landmarks[17][0]) / pawn_dist;
-          this.setState({pawn_rotate_array:[...this.state.pawn_rotate_array, pawn_dist]});
-          this.setState({rotate_array:[...this.state.rotate_array, rotate_dist]});
-          this.setState({rotate_time_array:[...this.state.rotate_time_array, this.state.rotate_time_record[i]]});
+          //this.setState({pawn_rotate_array:[...this.state.pawn_rotate_array, pawn_dist]});
+          this.setState({rotate_array:[...this.state.rotate_array, rotate_dist],
+            rotate_time_array:[...this.state.rotate_time_array, this.state.rotate_time_record[i]]});
           if (this.state.rotate_passed === 0){
             if (rotate_dist >= 0.5) this.setState({rotate_passed:1});
             if (rotate_dist <= -0.5) this.setState({rotate_passed:-1});
@@ -673,8 +724,8 @@ class App extends React.Component {
             this.setState({rotate_passed:-1});
           }
           if (this.state.rotate_passed === -1 && rotate_dist >= 0.5){
-            this.setState({rotate_passed:1});
-            this.setState({rotate_count:[...this.state.rotate_count, this.state.rotate_time_record[i]]});
+            this.setState({rotate_passed:1, 
+              rotate_count:[...this.state.rotate_count, this.state.rotate_time_record[i]]});
           }
           console.log("ROTATE COUNT:", this.state.rotate_count);
         });
@@ -693,7 +744,7 @@ class App extends React.Component {
             (landmarks[16][1] - landmarks[13][1])+
             (landmarks[20][1] - landmarks[17][1]))/
             (4*pawn_dist)
-          this.setState({pawn_fist_array:[...this.state.pawn_fist_array, pawn_dist]});
+          //this.setState({pawn_fist_array:[...this.state.pawn_fist_array, pawn_dist]});
           this.setState({fist_array:[...this.state.fist_array, fist_dist]});
           this.setState({fist_time_array:[...this.state.fist_time_array, this.state.fist_time_record[i]]});
           if (fist_dist >= 0.0){this.setState({fist_passed:1})}
@@ -718,7 +769,46 @@ class App extends React.Component {
     this.compose_chart();
   }
 
-  
+  exportToJson = (objectData, filename) => {
+    let contentType = "application/json;charset=utf-8;";
+    if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+      var blob = new Blob([decodeURIComponent(encodeURI(JSON.stringify(objectData)))], { type: contentType });
+      navigator.msSaveOrOpenBlob(blob, filename);
+    } else {
+      var a = document.createElement('a');
+      a.download = filename;
+      a.href = 'data:' + contentType + ',' + encodeURIComponent(JSON.stringify(objectData));
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  }
+ 
+  getArray = () => {
+    let dict = {
+      tap_count : this.state.tap_count,
+      rotate_count : this.state.rotate_count,
+      fist_count : this.state.fist_count,
+      dist_array : this.state.dist_array,
+      dist_time_array : this.state.dist_time_array,
+      dist_record : this.state.dist_record,
+      dist_time_record : this.state.dist_time_record,
+      rotate_array : this.state.rotate_array,
+      rotate_time_array : this.state.rotate_time_array,
+      rotate_record : this.state.rotate_record,
+      rotate_time_record : this.state.rotate_time_record,
+      fist_array : this.state.fist_array,
+      fist_time_array : this.state.fist_time_array,
+      fist_record : this.state.fist_record,
+      fist_time_record : this.state.fist_time_record,
+      gait_record : this.state.gait_record,
+      gait_time_record : this.state.gait_time_record,
+      startAt: this.state.startAt,
+      avg_fps: this.state.avg_fps,
+    }
+    this.exportToJson(dict, "state");
+  }
 
   render(){
     const videoConstraints = {
@@ -799,18 +889,26 @@ class App extends React.Component {
               Reset All
             </Button>
           </div>
-          
-          <input type="number" id="real_measurement" onChange={this.compose_chart} step="0.001" min='0' max='20'></input>
-          <button disabled={!this.state.chart_ready} onClick={this.switch_style}>Switch Chart Style</button>
-          <button onClick={this.switch_cam}>Switch Camera</button>
-          <button disabled={this.state.recording||this.state.real_time_inferencing} onClick={this.runPosenet}>PoseNet</button>
-          <button disabled={this.state.recording||this.state.real_time_inferencing} onClick={this.runFacemesh}>Facemesh</button>
-          <button disabled={this.state.recording||this.state.real_time_inferencing} onClick={this.switch_button}>Switch On/Off Button</button>       
+          <div>
             <h5>
               Finger Tapping Count:{this.state.tap_count.length}&nbsp;&nbsp;&nbsp;&nbsp;
               Rotate Count:{this.state.rotate_count.length}&nbsp;&nbsp;&nbsp;&nbsp;
-              Gripping Count: {this.state.fist_count.length}
+              Gripping Count: {this.state.fist_count.length}&nbsp;&nbsp;&nbsp;&nbsp;
+              FPS: {this.state.avg_fps}
             </h5>
+          </div>
+          <div>
+            <small>Enter Real Measurement (cm)</small>
+            <input type="number" id="real_measurement" onChange={this.compose_chart} step="0.001" min='0' max='20'></input>
+            <button disabled={!this.state.chart_ready} onClick={this.switch_style}>Switch Chart Style</button>
+            <button onClick={this.switch_cam}>Switch Camera</button>
+          </div>
+          <div>
+            <small>Experimental Features</small>
+            <button disabled={this.state.recording||this.state.real_time_inferencing} onClick={this.runPosenet}>PoseNet</button>
+            <button disabled={this.state.recording||this.state.real_time_inferencing} onClick={this.runFacemesh}>Facemesh</button>
+            <button disabled={this.state.recording||this.state.real_time_inferencing} onClick={this.switch_button}>Switch On/Off Button</button>
+          </div>
           <div>
             {this.state.chart_ready ? (
               <div>
@@ -827,6 +925,7 @@ class App extends React.Component {
             <div>
               <input type="file" id="upload-weights"></input>
             </div>
+            <button onClick={this.getArray}>Get Array</button>
           </div>
       </div>
     );
