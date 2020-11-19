@@ -201,6 +201,64 @@ const fingerJoints = {
       });
     }
   };
+
+  const style_still = {
+    0: { color: "gold", size: 15 },
+    1: { color: "gold", size: 6 },
+    2: { color: "gold", size: 10 },
+    3: { color: "gold", size: 6 },
+    4: { color: "gold", size: 6 },
+    5: { color: "gold", size: 10 },
+    6: { color: "gold", size: 6 },
+    7: { color: "gold", size: 6 },
+    8: { color: "gold", size: 6 },
+    9: { color: "gold", size: 10 },
+    10: { color: "gold", size: 6 },
+    11: { color: "gold", size: 6 },
+    12: { color: "gold", size: 6 },
+    13: { color: "gold", size: 10 },
+    14: { color: "gold", size: 6 },
+    15: { color: "gold", size: 6 },
+    16: { color: "gold", size: 6 },
+    17: { color: "gold", size: 10 },
+    18: { color: "gold", size: 6 },
+    19: { color: "gold", size: 6 },
+    20: { color: "gold", size: 6 },
+  };
+
+  export const drawHand_still = (predictions, ctx, moved) => {
+    // Check if we have predictions
+    if (predictions.length > 0) {
+      // Loop through each prediction
+      predictions.forEach((prediction) => {
+        // Grab landmarks
+        const landmarks = prediction.landmarks;
+        for (let i = 0; i < 21; i++){
+          if (moved.includes(i)) style_still[i]["color"] = "red";
+          else style_still[i]["color"] = "gold";
+        }
+
+        ctx.strokeStyle = "plum";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Loop through landmarks and draw em
+        for (let i = 0; i < landmarks.length; i++) {
+          // Get x point
+          const x = landmarks[i][0];
+          // Get y point
+          const y = landmarks[i][1];
+          // Start drawing
+          ctx.beginPath();
+          ctx.arc(x, y, style_still[i]["size"], 0, 3 * Math.PI);
+  
+          // Set line color
+          ctx.fillStyle = style_still[i]["color"];
+          ctx.fill();
+        }
+      });
+    }
+  };
   
   // Drawing function
   export const writeText = (ctx, info, style = {}) => {

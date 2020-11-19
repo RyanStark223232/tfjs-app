@@ -6,7 +6,7 @@ import * as facemesh from "@tensorflow-models/facemesh";
 //import * as tf from '@tensorflow/tfjs-core';
 import Webcam from "react-webcam";
 import "./App.css";
-import { drawHand_tap, drawHand_rotate, drawHand_fist, writeText, drawKeypoints, drawSkeleton, drawMesh } from "./utilities";
+import { drawHand_tap, drawHand_rotate, drawHand_fist, drawHand_still, writeText, drawKeypoints, drawSkeleton, drawMesh } from "./utilities";
 import { sqrt, pow } from "mathjs"
 import {Line} from 'react-chartjs-2';
 
@@ -42,11 +42,15 @@ class App extends React.Component {
       fist_time_array : [],
       fist_record : [],
       fist_time_record : [],
-      gait_record : [],
-      gait_time_record : [],
+      still_array : [],
+      still_time_array : [],
+      still_record : [],
+      still_time_record : [],
+      last_hand: [],
       chart_data1 : null,
       chart_data2 : null,
       chart_data3 : null,
+      chart_data4 : null,
       wait : false,
       wait_till : 0,
       startAt: Date.now(),
@@ -63,6 +67,7 @@ class App extends React.Component {
     this.stop_real_time_inference = this.stop_real_time_inference.bind(this);
     this.stop_tapping = this.stop_tapping.bind(this);
     this.stop_rotating = this.stop_rotating.bind(this);
+    this.stop_gripping = this.stop_gripping.bind(this);
     this.stop_record = this.stop_record.bind(this);
     this.record_video = this.record_video.bind(this);
     this.concat_frame = this.concat_frame.bind(this);
@@ -173,6 +178,9 @@ class App extends React.Component {
     let time_array_3 = [];
     let count_array_3 = [];
     let label_3 = "";
+    let time_array_4 = [];
+    let count_array_4 = [];
+    let label_4 = "";
     let real_dist = document.getElementById("real_measurement").value;
     let avg_fps = this.state.dist_time_array.length / 
                  (this.state.dist_time_array[this.state.dist_time_array.length - 1] - 
@@ -187,12 +195,22 @@ class App extends React.Component {
       count_array_2 = [...this.state.rotate_array];
       time_array_3 = [...this.state.fist_time_array];
       count_array_3 = [...this.state.fist_array];
+      if (this.state.still_array.length > 100){
+        time_array_4 = this.state.still_time_array.slice(0, this.state.still_time_array.length-10);
+        count_array_4 = this.state.still_array.slice(0, this.state.still_array.length-10);
+      }
+      else {
+        time_array_4 = [...this.state.still_time_array];
+        count_array_4 = [...this.state.still_array];
+      }
+      
       
       // Change to Real Life Measurement
       if (real_dist > 0.0001){
         label_1 = "Distance between Index and Thumb (cm)";
         label_2 = "Relative Location between Left and Right of Hand (cm)";
         label_3 = "Relative Location between Tip of Fingers and Finger Joints (cm)";
+        label_4 = "Relative Location Moved (cm)";
         let i = 0;
         let tmp = 0;
         for (i = 0; i < count_array_1.length; i++){
@@ -207,11 +225,16 @@ class App extends React.Component {
           tmp = count_array_3[i];
           count_array_3[i] = tmp*real_dist;
         }
+        for (i = 0; i < count_array_4.length; i++){
+          tmp = count_array_4[i];
+          count_array_4[i] = tmp*real_dist;
+        }
       }
       else{
         label_1 = "Distance between Index and Thumb (Relative Scale)";
         label_2 = "Relative Location between Left and Right of Hand (Relative Scale)";
         label_3 = "Relative Location between Tip of Fingers and Finger Joints (Relative Scale)";
+        label_4 = "Relative Location Moved (Relative Scale)";
       }
     }
     else{
@@ -219,8 +242,8 @@ class App extends React.Component {
       let d_array = [];
       let avg_value = 0;
       for (let i = 1; i < this.state.dist_array.length; i++) d_array = [...d_array, Math.abs(this.state.dist_array[i-1] - this.state.dist_array[i])];
-      for (let i = 0; i < d_array.length - 49; i++){
-        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4])/5;
+      for (let i = 0; i < d_array.length - 10; i++){
+        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4] + d_array[i+5] + d_array[i+6] + d_array[i+7] + d_array[i+8] + d_array[i+9])/10;
         count_array_1 = [...count_array_1, avg_value];
         time_array_1 = [...time_array_1, this.state.dist_time_array[i]];
       }
@@ -228,8 +251,8 @@ class App extends React.Component {
       d_array = [];
       avg_value = 0;
       for (let i = 1; i < this.state.rotate_array.length; i++) d_array = [...d_array, Math.abs(this.state.rotate_array[i-1] - this.state.rotate_array[i])];
-      for (let i = 0; i < d_array.length - 49; i++){
-        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4])/5;
+      for (let i = 0; i < d_array.length - 10; i++){
+        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4] + d_array[i+5] + d_array[i+6] + d_array[i+7] + d_array[i+8] + d_array[i+9])/10;
         count_array_2 = [...count_array_2, avg_value];
         time_array_2 = [...time_array_2, this.state.rotate_time_array[i]];
       }
@@ -237,10 +260,19 @@ class App extends React.Component {
       d_array = [];
       avg_value = 0;
       for (let i = 1; i < this.state.fist_array.length; i++) d_array = [...d_array, Math.abs(this.state.fist_array[i-1] - this.state.fist_array[i])];
-      for (let i = 0; i < d_array.length - 49; i++){
-        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4])/5;
+      for (let i = 0; i < d_array.length - 10; i++){
+        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4] + d_array[i+5] + d_array[i+6] + d_array[i+7] + d_array[i+8] + d_array[i+9])/10;
         count_array_3 = [...count_array_3, avg_value];
         time_array_3 = [...time_array_3, this.state.fist_time_array[i]];
+      }
+
+      d_array = [];
+      avg_value = 0;
+      for (let i = 1; i < this.state.still_array.length; i++) d_array = [...d_array, Math.abs(this.state.still_array[i-1] - this.state.still_array[i])];
+      for (let i = 0; i < d_array.length - 10; i++){
+        avg_value = (d_array[i] + d_array[i+1] + d_array[i+2] + d_array[i+3] + d_array[i+4] + d_array[i+5] + d_array[i+6] + d_array[i+7] + d_array[i+8] + d_array[i+9])/10;
+        count_array_4 = [...count_array_4, avg_value];
+        time_array_4 = [...time_array_4, this.state.fist_time_array[i]];
       }
 
       // Change to Real Life Measurement
@@ -248,6 +280,7 @@ class App extends React.Component {
         label_1 = "Average Distance between Index and Thumb per Second (cm)";
         label_2 = "Average Distance between Left and Right of Hand per Second (cm)";
         label_3 = "Average Distance Location between Tip of Fingers and Finger Joints per Second (cm)";
+        label_4 = "Relative Location Moved per Second (cm)";
         let i = 0;
         let tmp = 0;
         for (i = 0; i < count_array_1.length; i++){
@@ -267,6 +300,7 @@ class App extends React.Component {
         label_1 = "Average Distance between Index and Thumb per Second (Relative Scale)";
         label_2 = "Average Distance between Left and Right of Hand per Second (Relative Scale)";
         label_3 = "Average Distance Location between Tip of Fingers and Finger Joints per Second (Relative Scale)";
+        label_4 = "Relative Location Moved per Second (Relative Scale)";
       }
     }
 
@@ -349,9 +383,36 @@ class App extends React.Component {
         }
       ]
     };
+    const data4 = {
+      labels: time_array_4,
+      datasets: [        
+        {
+          label: label_4,
+          fill: false,
+          lineTension: 0.1,
+          backgroundColor: 'rgba(75,192,75,0.4)',
+          borderColor: 'rgba(75,192,75,1)',
+          borderCapStyle: 'butt',
+          borderDash: [],
+          borderDashOffset: 0.0,
+          borderJoinStyle: 'miter',
+          pointBorderColor: 'rgba(75,192,75,1)',
+          pointBackgroundColor: '#fff',
+          pointBorderWidth: 1,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: 'rgba(75,192,75,1)',
+          pointHoverBorderColor: 'rgba(220,220,220,1)',
+          pointHoverBorderWidth: 2,
+          pointRadius: 1,
+          pointHitRadius: 10,
+          data: count_array_4
+        }
+      ]
+    };
     this.setState({chart_data1:data1});
     this.setState({chart_data2:data2});
     this.setState({chart_data3:data3});
+    this.setState({chart_data4:data4});
     this.setState({chart_ready:true});
   }
 
@@ -422,8 +483,10 @@ class App extends React.Component {
       fist_time_array : [],
       fist_record : [],
       fist_time_record : [],
-      gait_record : [],
-      gait_time_record : [],
+      still_array : [],
+      still_time_array : [],
+      still_record : [],
+      still_time_record : [],
       chart_data1 : null,
       chart_data2 : null,
       chart_data3 : null,
@@ -572,7 +635,33 @@ class App extends React.Component {
                 this.setState({fist_passed:0,
                   fist_count:[...this.state.fist_count, current_moment]});
               }
-            }                  
+            }
+            
+            if (this.state.fist_done === true ){
+              // Calculate relative distance
+              let total_move;
+              if (this.state.last_hand.length > 0){
+                let i;
+                let moved = [];
+                total_move = 0.0;
+                for (i = 0; i < 21; i++){
+                  let move_dist = this.norm(landmarks[i], this.state.last_hand[i]) / pawn_dist;
+                  total_move += move_dist;
+                  if ( move_dist > 0.1){
+                    moved = [...moved, i];
+                  }
+                }
+                console.log(moved);
+                drawHand_still (hand, ctx, moved);
+              }
+
+              // Record Hand Landmarks
+              this.setState({still_array:[...this.state.still_array, total_move],
+                still_time_array:[...this.state.still_time_array, current_moment],
+                last_hand: landmarks,
+              });
+            }
+
           });
         }
         else {
@@ -591,6 +680,11 @@ class App extends React.Component {
 
   async stop_rotating() {
     this.setState({rotate_done:true});
+    this.setState({wait:true});
+  }
+
+  async stop_gripping() {
+    this.setState({fist_done:true});
     this.setState({wait:true});
   }
 
@@ -654,6 +748,11 @@ class App extends React.Component {
           else if (this.state.rotate_done === true && this.state.fist_done === false){
             this.setState({fist_record:[...this.state.fist_record, img],
               fist_time_record:[...this.state.fist_time_record, current_moment]});
+          }
+
+          if (this.state.fist_done === true ){
+            this.setState({still_record:[...this.state.still_record, img],
+              still_time_record:[...this.state.still_time_record, current_moment]});
           }
         }.bind(this)
       }
@@ -756,6 +855,37 @@ class App extends React.Component {
         });
       }
     }
+
+    // Run prediction on recorded postural data
+    for (let i = 0; i<this.state.still_record.length; i++){
+      const hand = await net.estimateHands(this.state.still_record[i]);
+      if (hand.length > 0){
+        hand.forEach((prediction) => {
+          const landmarks = prediction.landmarks
+          let pawn_dist = this.norm(landmarks[0], landmarks[2]);
+          let total_move;
+          let i;
+          let moved = [];
+          if (this.state.last_hand.length > 0){
+            total_move = 0.0;
+            for (i = 0; i < 21; i++){
+              let move_dist = this.norm(landmarks[i], this.state.last_hand[i]) / pawn_dist;
+              total_move += move_dist;
+              if ( move_dist > 0.1){
+                moved = [...moved, i];
+              }
+            }
+          }
+          console.log("TOTAL MOVED:", total_move);
+          //this.setState({pawn_fist_array:[...this.state.pawn_fist_array, pawn_dist]});
+          this.setState({still_array:[...this.state.still_array, total_move],
+            still_time_array:[...this.state.still_time_array, this.state.still_time_record[i]],
+            last_hand: landmarks,
+          });
+        });
+      }
+    }
+
     this.setState({record:[]});
   }
 
@@ -802,8 +932,10 @@ class App extends React.Component {
       fist_time_array : this.state.fist_time_array,
       fist_record : this.state.fist_record,
       fist_time_record : this.state.fist_time_record,
-      gait_record : this.state.gait_record,
-      gait_time_record : this.state.gait_time_record,
+      still_array : this.state.still_array,
+      still_time_array : this.state.still_time_array,
+      still_record : this.state.still_record,
+      still_time_record : this.state.still_time_record,
       startAt: this.state.startAt,
       avg_fps: this.state.avg_fps,
     }
@@ -860,7 +992,11 @@ class App extends React.Component {
             {this.state.real_time_inferencing ? (
               this.state.finger_done ? (
                 this.state.rotate_done ? (
-                  <Button variant="contained" color="primary"  onClick={this.stop_real_time_inference}>Calculate Result</Button>
+                  this.state.fist_done ? (
+                    <Button variant="contained" color="primary"  onClick={this.stop_real_time_inference}>Calculate Result</Button>
+                  ):(
+                    <Button variant="contained" color="primary"  onClick={this.stop_gripping}>Finish Gripping</Button>
+                  )                  
                 ):(
                   <Button variant="contained" color="primary"  onClick={this.stop_rotating}>Finish Rotating</Button>
                 )
@@ -874,7 +1010,11 @@ class App extends React.Component {
             {this.state.recording ? (
               this.state.finger_done ? (
                 this.state.rotate_done ? (
-                  <Button variant="contained" color="secondary" onClick={this.stop_record}>Calculate Result</Button>
+                  this.state.fist_done ? (
+                    <Button variant="contained" color="secondary" onClick={this.stop_record}>Calculate Result</Button>
+                  ) : (
+                    <Button variant="contained" color="secondary"  onClick={this.stop_gripping}>Finish Gripping</Button>
+                  )                  
                 ):(
                   <Button variant="contained" color="secondary" onClick={this.stop_rotating}>Finish Rotating</Button>
                 )
@@ -915,6 +1055,7 @@ class App extends React.Component {
                 <Line data={this.state.chart_data1} />
                 <Line data={this.state.chart_data2} />
                 <Line data={this.state.chart_data3} />
+                <Line data={this.state.chart_data4} />
               </div>
             ) : (
               <div/>

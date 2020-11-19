@@ -1,22 +1,22 @@
 {
   "files": {
     "main.css": "/tfjs-app/static/css/main.eeb74065.chunk.css",
-    "main.js": "/tfjs-app/static/js/main.b1e42c48.chunk.js",
-    "main.js.map": "/tfjs-app/static/js/main.b1e42c48.chunk.js.map",
+    "main.js": "/tfjs-app/static/js/main.baefdc72.chunk.js",
+    "main.js.map": "/tfjs-app/static/js/main.baefdc72.chunk.js.map",
     "runtime-main.js": "/tfjs-app/static/js/runtime-main.56074136.js",
     "runtime-main.js.map": "/tfjs-app/static/js/runtime-main.56074136.js.map",
-    "static/js/2.ac27c845.chunk.js": "/tfjs-app/static/js/2.ac27c845.chunk.js",
-    "static/js/2.ac27c845.chunk.js.map": "/tfjs-app/static/js/2.ac27c845.chunk.js.map",
+    "static/js/2.910942a8.chunk.js": "/tfjs-app/static/js/2.910942a8.chunk.js",
+    "static/js/2.910942a8.chunk.js.map": "/tfjs-app/static/js/2.910942a8.chunk.js.map",
     "static/js/3.686338a8.chunk.js": "/tfjs-app/static/js/3.686338a8.chunk.js",
     "static/js/3.686338a8.chunk.js.map": "/tfjs-app/static/js/3.686338a8.chunk.js.map",
     "index.html": "/tfjs-app/index.html",
     "static/css/main.eeb74065.chunk.css.map": "/tfjs-app/static/css/main.eeb74065.chunk.css.map",
-    "static/js/2.ac27c845.chunk.js.LICENSE.txt": "/tfjs-app/static/js/2.ac27c845.chunk.js.LICENSE.txt"
+    "static/js/2.910942a8.chunk.js.LICENSE.txt": "/tfjs-app/static/js/2.910942a8.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
     "static/js/runtime-main.56074136.js",
-    "static/js/2.ac27c845.chunk.js",
+    "static/js/2.910942a8.chunk.js",
     "static/css/main.eeb74065.chunk.css",
-    "static/js/main.b1e42c48.chunk.js"
+    "static/js/main.baefdc72.chunk.js"
   ]
 }
