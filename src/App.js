@@ -30,6 +30,10 @@ class App extends React.Component {
       finger_done : false,
       rotate_done : false,
       fist_done : false,
+      hand_dist_array : [],
+      hand_rotate_array : [],
+      hand_fist_array : [],
+      hand_still_array : [],
       dist_array : [],
       dist_time_array : [],
       dist_record : [],
@@ -471,6 +475,10 @@ class App extends React.Component {
       finger_done : false,
       rotate_done : false,
       fist_done : false,
+      hand_dist_array : [],
+      hand_rotate_array : [],
+      hand_fist_array : [],
+      hand_still_array : [],
       dist_array : [],
       dist_time_array : [],
       dist_record : [],
@@ -568,7 +576,8 @@ class App extends React.Component {
 
               // Record distance
               this.setState({dist_array:[...this.state.dist_array, current_dist],
-                dist_time_array:[...this.state.dist_time_array, current_moment]});
+                dist_time_array:[...this.state.dist_time_array, current_moment],
+                hand_dist_array:[...this.state.hand_dist_array, hand]});
               
               // Perform counting
               if (this.state.index_passed === 0 && (current_dist - this.state.min_dist) > 0.05){
@@ -599,7 +608,8 @@ class App extends React.Component {
 
               // Record distance
               this.setState({rotate_array:[...this.state.rotate_array, rotate_dist],
-                rotate_time_array:[...this.state.rotate_time_array, current_moment]});
+                rotate_time_array:[...this.state.rotate_time_array, current_moment],
+                hand_rotate_array:[...this.state.hand_rotate_array, hand]});
 
               // Perform counting
               if (this.state.rotate_passed === 0){
@@ -627,7 +637,8 @@ class App extends React.Component {
 
               // Record distance
               this.setState({fist_array:[...this.state.fist_array, fist_dist],
-                fist_time_array:[...this.state.fist_time_array, current_moment]});
+                fist_time_array:[...this.state.fist_time_array, current_moment],
+                hand_fist_array:[...this.state.hand_fist_array, hand]});
 
               // Perform counting
               if (fist_dist >= 0.0){this.setState({fist_passed:1})}
@@ -647,7 +658,7 @@ class App extends React.Component {
                 for (i = 0; i < 21; i++){
                   let move_dist = this.norm(landmarks[i], this.state.last_hand[i]) / pawn_dist;
                   total_move += move_dist;
-                  if ( move_dist > 0.1){
+                  if ( move_dist > 0.05){
                     moved = [...moved, i];
                   }
                 }
@@ -658,6 +669,7 @@ class App extends React.Component {
               // Record Hand Landmarks
               this.setState({still_array:[...this.state.still_array, total_move],
                 still_time_array:[...this.state.still_time_array, current_moment],
+                hand_still_array:[...this.state.hand_still_array, hand],
                 last_hand: landmarks,
               });
             }
@@ -777,7 +789,8 @@ class App extends React.Component {
 
           // Record distance
           this.setState({dist_array:[...this.state.dist_array, current_dist],
-            dist_time_array:[...this.state.dist_time_array, this.state.dist_time_record[i]]});
+            dist_time_array:[...this.state.dist_time_array, this.state.dist_time_record[i]],
+            hand_dist_array:[...this.state.hand_dist_array, hand]});
           
           // Perform counting
           if (this.state.index_passed === 0 && (current_dist - this.state.min_dist) > 0.05){
@@ -814,7 +827,8 @@ class App extends React.Component {
           let rotate_dist = (landmarks[2][0] - landmarks[17][0]) / pawn_dist;
           //this.setState({pawn_rotate_array:[...this.state.pawn_rotate_array, pawn_dist]});
           this.setState({rotate_array:[...this.state.rotate_array, rotate_dist],
-            rotate_time_array:[...this.state.rotate_time_array, this.state.rotate_time_record[i]]});
+            rotate_time_array:[...this.state.rotate_time_array, this.state.rotate_time_record[i]],
+            hand_rotate_array:[...this.state.hand_rotate_array, hand]});
           if (this.state.rotate_passed === 0){
             if (rotate_dist >= 0.5) this.setState({rotate_passed:1});
             if (rotate_dist <= -0.5) this.setState({rotate_passed:-1});
@@ -844,8 +858,9 @@ class App extends React.Component {
             (landmarks[20][1] - landmarks[17][1]))/
             (4*pawn_dist)
           //this.setState({pawn_fist_array:[...this.state.pawn_fist_array, pawn_dist]});
-          this.setState({fist_array:[...this.state.fist_array, fist_dist]});
-          this.setState({fist_time_array:[...this.state.fist_time_array, this.state.fist_time_record[i]]});
+          this.setState({fist_array:[...this.state.fist_array, fist_dist],
+            fist_time_array:[...this.state.fist_time_array, this.state.fist_time_record[i]],
+            hand_fist_array:[...this.state.hand_fist_array, hand]});
           if (fist_dist >= 0.0){this.setState({fist_passed:1})}
           if (fist_dist < -0.4 && this.state.fist_passed === 1){
             this.setState({fist_passed:0});
@@ -880,6 +895,7 @@ class App extends React.Component {
           //this.setState({pawn_fist_array:[...this.state.pawn_fist_array, pawn_dist]});
           this.setState({still_array:[...this.state.still_array, total_move],
             still_time_array:[...this.state.still_time_array, this.state.still_time_record[i]],
+            hand_still_array:[...this.state.hand_still_array, hand],
             last_hand: landmarks,
           });
         });
@@ -938,6 +954,10 @@ class App extends React.Component {
       still_time_record : this.state.still_time_record,
       startAt: this.state.startAt,
       avg_fps: this.state.avg_fps,
+      hand_dist_array : this.state.hand_dist_array,
+      hand_rotate_array : this.state.hand_rotate_array,
+      hand_fist_array : this.state.hand_fist_array,
+      hand_still_array : this.state.hand_still_array,
     }
     this.exportToJson(dict, "state");
   }
