@@ -1374,7 +1374,10 @@ class App extends React.Component {
   }
  
   getArray = () => {
+    let remark = document.getElementById("Remarks").value;
+    let ID = Date().toString();
     let dict = {
+      remark:remark,
       dist_array_L : this.state.dist_array_L,
       dist_time_array_L : this.state.dist_time_array_L,
       rotate_array_L : this.state.rotate_array_L,
@@ -1402,8 +1405,9 @@ class App extends React.Component {
     }
     let PD = document.getElementById("PD").value;
     let Score = document.getElementById("Score").value;
+    let PID = document.getElementById("Patient_ID").value;
     console.log(PD, Score);
-    this.exportToJson(dict, "state_" + PD + "_" + Score);
+    this.exportToJson(dict, "ID "+ PID +" Record "+ID+" Label " + PD + " " + Score);
   }
 
   render(){
@@ -1549,9 +1553,17 @@ class App extends React.Component {
               <small>UPDRS Score, X for N/A, Could be Empty</small>
               <input type="text" id="Score"></input>
             </div>
+            <div>
+              <small>Patient ID</small>
+              <input type="text" id="Patient_ID"></input> 
+              <small>Special Remarks</small>
+              <input type="text" id="Remarks"></input> 
+            </div>
             <select name="PD" id="PD">
-              <option value="False">Control</option>
-              <option value="True">PD</option>
+              <option value="0">Control</option>
+              <option value="1">RBD</option>
+              <option value="2">PD(with medication)</option>
+              <option value="3">PD(without medication)</option>
             </select>
             <button onClick={this.getArray}>Get Array</button>
             <div>
