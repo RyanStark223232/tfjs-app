@@ -3,12 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor/android": "^2.4.2",
+    "@capacitor/core": "^2.4.2",
+    "@tensorflow-models/body-pix": "^2.0.5",
+    "@tensorflow-models/handpose": "0.0.6",
+    "@tensorflow/tfjs": "^2.6.0",
+    "@tensorflow/tfjs-backend-webgl": "^2.6.0",
+    "@tensorflow/tfjs-converter": "^2.6.0",
+    "@tensorflow/tfjs-core": "^2.6.0",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
+    "axios": "^0.20.0",
+    "cheerio": "^1.0.0-rc.3",
+    "mathjs": "^7.5.1",
     "react": "^16.13.1",
+    "react-chartjs-2": "^2.10.0",
     "react-dom": "^16.13.1",
-    "react-scripts": "3.4.3"
+    "react-images-upload": "^1.2.8",
+    "react-player": "^2.8.1",
+    "react-scripts": "3.4.3",
+    "react-webcam": "^5.2.1",
+    "react-webcam-capture": "^1.2.1",
+    "request-promise": "^4.2.6"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -30,5 +47,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@capacitor/cli": "2.4.2"
   }
 }

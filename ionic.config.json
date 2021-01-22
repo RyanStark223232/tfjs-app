@@ -1,0 +1,7 @@
+{
+  "name": "handpose2",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react"
+}
